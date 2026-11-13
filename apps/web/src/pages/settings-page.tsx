@@ -13,7 +13,7 @@ import {
 } from '@event-platform/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, ChevronRight, Inbox, RefreshCw, Trash2 } from 'lucide-react';
+import { Building2, ChevronRight, ImagePlus, Inbox, RefreshCw, Trash2 } from 'lucide-react';
 import * as React from 'react';
 import { useForm, type FieldValues, type Path, type UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -30,6 +30,8 @@ import { formatDateTime, formatNumber, formatRelative, plural } from '@/lib/form
 const ORGANIZERS_KEY = ['organizers'] as const;
 const CONFIG_KEY = ['auth', 'config'] as const;
 const MAILBOX_KEY = ['dev-mailbox'] as const;
+
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
 const PASSWORD_HINT = 'Najmanje 10 znakova, bar jedno slovo i jedna cifra.';
 const RETENTION_HINT =
@@ -282,6 +284,7 @@ function OrganizerBlock({ organizer, showHeading }: { organizer: OrganizerDto; s
   return (
     <div className="p-5">
       {showHeading && <h3 className="mb-4 text-sm font-semibold text-ink">{organizer.name}</h3>}
+      <OrganizerLogo organizer={organizer} />
       <form onSubmit={form.handleSubmit((values) => save.mutate(values))} noValidate className="max-w-xl space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Naziv" htmlFor={`${idPrefix}-name`} error={errors.name?.message}>
@@ -339,6 +342,74 @@ function OrganizerBlock({ organizer, showHeading }: { organizer: OrganizerDto; s
         loading={runRetention.isPending}
         onConfirm={() => runRetention.mutate()}
       />
+    </div>
+  );
+}
+
+function OrganizerLogo({ organizer }: { organizer: OrganizerDto }) {
+  const queryClient = useQueryClient();
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ORGANIZERS_KEY });
+
+  const upload = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return api.upload<OrganizerDto>(`/organizers/${organizer.id}/logo`, form);
+    },
+    onSuccess: async () => {
+      await refresh();
+      toast.success('Logo je sačuvan.');
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+  const remove = useMutation({
+    mutationFn: () => api.delete<OrganizerDto>(`/organizers/${organizer.id}/logo`),
+    onSuccess: async () => {
+      await refresh();
+      toast.success('Logo je uklonjen.');
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+
+  return (
+    <div className="mb-5 flex max-w-xl items-center gap-4">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        aria-label={`Logo organizatora: ${organizer.name}`}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (!file) return;
+          if (file.size > LOGO_MAX_BYTES) toast.error('Logo je veći od 2 MB.');
+          else upload.mutate(file);
+        }}
+      />
+      {/* Same light background as the ticket, so the preview matches what guests see. */}
+      <div className="flex size-20 shrink-0 items-center justify-center rounded-md border border-line bg-[#FBFAF6] p-2">
+        {organizer.logoUrl ? (
+          <img src={organizer.logoUrl} alt={`Logo: ${organizer.name}`} className="max-h-full max-w-full object-contain" />
+        ) : (
+          <ImagePlus className="size-6 text-ink-faint" strokeWidth={1.5} aria-hidden />
+        )}
+      </div>
+      <div className="min-w-0">
+        <div className="text-sm font-semibold text-ink">Logo</div>
+        <p className="mt-0.5 text-[13px] leading-relaxed text-ink-muted">Prikazuje se na ulaznici gosta. JPG, PNG ili WebP do 2 MB.</p>
+        <div className="mt-2 flex gap-2">
+          <Button variant="secondary" size="sm" loading={upload.isPending} onClick={() => inputRef.current?.click()}>
+            {organizer.logoUrl ? 'Zameni logo' : 'Dodaj logo'}
+          </Button>
+          {organizer.logoUrl && (
+            <Button variant="ghost" size="sm" loading={remove.isPending} onClick={() => remove.mutate()}>
+              Ukloni
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

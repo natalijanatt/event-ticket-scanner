@@ -239,7 +239,7 @@ E-mail is mocked and the queue runs inline; no Redis or network is needed.
 5. Health check: `GET /api/health` → `200 {"status":"ok","database":"up"}` (503 when the database is unreachable).
 
 HTTPS is mandatory in production (secure cookies, camera access). Logs are structured JSON when `NODE_ENV=production`.
-Persist `UPLOAD_DIR` (event cover images) on a volume.
+Persist `UPLOAD_DIR` (event cover images, organizer logos) on a volume.
 
 ### Railway (API) + Netlify (web)
 

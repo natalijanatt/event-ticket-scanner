@@ -34,7 +34,7 @@ export class PublicTicketsController {
       include: {
         guest: { select: { firstName: true, lastName: true } },
         ticketType: { select: { name: true, color: true, instructions: true } },
-        event: { include: { organizer: { select: { name: true } } } },
+        event: { include: { organizer: { select: { name: true, logoUrl: true } } } },
       },
     });
     if (!ticket) throw notFound('Ulaznica nije pronađena.');
@@ -62,6 +62,7 @@ export class PublicTicketsController {
         coverImageUrl: ticket.event.coverImageUrl,
         status: ticket.event.status,
         organizerName: ticket.event.organizer.name,
+        organizerLogoUrl: ticket.event.organizer.logoUrl,
       },
       qrSvg,
     };

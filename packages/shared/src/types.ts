@@ -48,6 +48,7 @@ export interface OrganizerDto {
   id: string;
   name: string;
   contactEmail: string | null;
+  logoUrl: string | null;
   retentionDays: number;
   createdAt: string;
   memberCount: number;
@@ -409,6 +410,7 @@ export interface PublicTicketDto {
     coverImageUrl: string | null;
     status: EventStatus;
     organizerName: string;
+    organizerLogoUrl: string | null;
   };
   /** Inline SVG markup of the QR code (generated server-side). */
   qrSvg: string;

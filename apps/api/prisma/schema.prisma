@@ -140,6 +140,8 @@ model Organizer {
   id            String   @id @default(uuid()) @db.Uuid
   name          String
   contactEmail  String?  @map("contact_email")
+  /// Shown on the guest's ticket. Path under /uploads/logos.
+  logoUrl       String?  @map("logo_url")
   /// Guest personal data is anonymized this many days after their last event
   /// ended. 0 disables automatic anonymization.
   retentionDays Int      @default(365) @map("retention_days")

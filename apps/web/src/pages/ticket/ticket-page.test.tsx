@@ -22,6 +22,7 @@ const ticket: PublicTicketDto = {
     coverImageUrl: null,
     status: 'ACTIVE',
     organizerName: 'Club Central',
+    organizerLogoUrl: null,
   },
   qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>',
 };
@@ -54,6 +55,15 @@ describe('digital ticket (guest view)', () => {
     // Viewing is read-only: the page only ever GETs the ticket.
     expect(calls.filter((c) => c.path.startsWith('/public/tickets')).every((c) => c.method === 'GET')).toBe(true);
     expect(calls.some((c) => c.method !== 'GET' && c.path.includes('ticket'))).toBe(false);
+  });
+
+  it("shows the organizer's logo on the ticket when one is set", async () => {
+    show({ ...ticket, event: { ...ticket.event, organizerLogoUrl: '/uploads/logos/abc.png' } });
+
+    const logo = (await screen.findByAltText('Club Central')) as HTMLImageElement;
+    expect(logo.src).toContain('/uploads/logos/abc.png');
+    // Part of the card itself, so it ends up in the saved image and the printout.
+    expect(screen.getByRole('article', { name: 'Ulaznica' })).toContainElement(logo);
   });
 
   it('says clearly when the ticket has already been used', async () => {

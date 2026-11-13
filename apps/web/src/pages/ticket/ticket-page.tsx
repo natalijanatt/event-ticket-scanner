@@ -143,6 +143,10 @@ export function TicketPage() {
             )}
 
             <div className="px-6 pb-5 pt-6">
+              {/* Inside the card, so the logo is part of the saved image and the printout. */}
+              {ticket.event.organizerLogoUrl && (
+                <img src={ticket.event.organizerLogoUrl} alt={ticket.event.organizerName} className="mb-4 h-10 max-w-[160px] object-contain object-left" />
+              )}
               <div className="flex items-start justify-between gap-3">
                 <h1 className="text-balance text-[26px] font-extrabold leading-[1.15] tracking-tight">{ticket.event.name}</h1>
                 <span className="mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#131A26]/15 px-2.5 py-1 text-sm font-extrabold uppercase tracking-wide">
