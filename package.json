@@ -27,7 +27,11 @@
     "test:api": "npm run test -w @event-platform/api",
     "test:api:integration": "npm run test:integration -w @event-platform/api",
     "test:web": "npm run test -w @event-platform/web",
-    "typecheck": "npm run build:shared && npm run typecheck -w @event-platform/api && npm run typecheck -w @event-platform/web"
+    "typecheck": "npm run build:shared && npm run typecheck -w @event-platform/api && npm run typecheck -w @event-platform/web",
+    "create-admin": "npm run create-admin -w @event-platform/api",
+    "build:api": "npm run build:shared && npm run db:generate && npm run build -w @event-platform/api",
+    "build:web": "npm run build:shared && npm run build -w @event-platform/web && node scripts/netlify-redirects.mjs",
+    "migrate:prod": "npm run prisma:deploy:ci -w @event-platform/api"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

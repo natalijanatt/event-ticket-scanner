@@ -240,3 +240,36 @@ E-mail is mocked and the queue runs inline; no Redis or network is needed.
 
 HTTPS is mandatory in production (secure cookies, camera access). Logs are structured JSON when `NODE_ENV=production`.
 Persist `UPLOAD_DIR` (event cover images) on a volume.
+
+### Railway (API) + Netlify (web)
+
+The browser must see ONE origin, otherwise the SameSite auth cookies are not sent.
+Netlify therefore proxies `/api` and `/uploads` to Railway (`netlify.toml`, `scripts/netlify-redirects.mjs`).
+
+**Railway** — new project from the GitHub repo (root directory = repository root; `railway.json` supplies the
+build, migration, start and health-check commands). Add a Redis service, then set the variables:
+
+| Variable | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL`, `DIRECT_URL` | the two Supabase pooler URLs (with `schema=app`) |
+| `REDIS_URL` | `${{Redis.REDIS_URL}}` |
+| `JWT_ACCESS_SECRET`, `TICKET_TOKEN_ENC_KEY` | freshly generated (see `.env.example`) — not the development values |
+| `PUBLIC_APP_URL`, `WEB_ORIGINS` | the Netlify site URL, e.g. `https://your-site.netlify.app` |
+| `TRUST_PROXY` | `2` (Netlify → Railway), so rate limits see real client IPs |
+| `EMAIL_MODE`, `EMAIL_FROM`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` | see *E-mail* |
+
+Generate a public domain for the service (Settings → Networking). Cover images live on local disk:
+attach a volume and point `UPLOAD_DIR` at it, or they disappear on every redeploy.
+
+**Netlify** — new site from the same repo (base directory empty; `netlify.toml` supplies the rest).
+Set `API_URL` to the Railway public URL (no trailing slash) and deploy.
+
+**First administrator** — with `.env` pointing at the production database:
+
+```bash
+npm run create-admin
+```
+
+It asks for e-mail, name and password. Organizers, their users and entrance staff are then created in the admin panel.
+Do not run `npm run db:seed` against production: it inserts demo accounts with a publicly known password.

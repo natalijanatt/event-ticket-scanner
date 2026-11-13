@@ -13,7 +13,9 @@
     "prisma:studio": "dotenv -e ../../.env -- prisma studio",
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "test": "jest --config jest.config.js",
-    "test:integration": "jest --config jest.integration.config.js --runInBand"
+    "test:integration": "jest --config jest.integration.config.js --runInBand",
+    "prisma:deploy:ci": "prisma migrate deploy",
+    "create-admin": "tsx prisma/create-admin.ts"
   },
   "dependencies": {
     "@event-platform/shared": "*",
@@ -32,6 +34,7 @@
     "exceljs": "^4.4.0",
     "helmet": "^8.0.0",
     "ioredis": "^5.4.2",
+    "prisma": "^6.5.0",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -50,7 +53,6 @@
     "@types/supertest": "^6.0.2",
     "dotenv-cli": "^8.0.0",
     "jest": "^29.7.0",
-    "prisma": "^6.5.0",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
     "tsx": "^4.19.2",

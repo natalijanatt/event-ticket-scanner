@@ -12,7 +12,8 @@ export function setupApp(app: NestExpressApplication): void {
   const config = app.get(AppConfig);
 
   app.setGlobalPrefix('api');
-  if (config.trustProxy) app.set('trust proxy', 1);
+  // Needed for correct client IPs (rate limiting) behind reverse proxies.
+  if (config.trustProxy > 0) app.set('trust proxy', config.trustProxy);
   app.disable('x-powered-by');
 
   app.use(

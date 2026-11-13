@@ -18,7 +18,12 @@ const envSchema = z.object({
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(14),
   COOKIE_SECURE: bool(false),
-  TRUST_PROXY: bool(false),
+  /** Number of reverse proxies in front of the API (false/0 = none, true = 1). Netlify -> Railway = 2. */
+  TRUST_PROXY: z
+    .string()
+    .optional()
+    .transform((v) => (!v || v === 'false' ? 0 : v === 'true' ? 1 : Number(v)))
+    .refine((n) => Number.isInteger(n) && n >= 0 && n <= 5, 'TRUST_PROXY must be true, false or a hop count 0-5'),
   WEB_ORIGINS: z.string().default('http://localhost:5173'),
   PUBLIC_APP_URL: z.string().url().default('http://localhost:5173'),
   APP_TIMEZONE: z.string().default('Europe/Belgrade'),
@@ -47,7 +52,7 @@ export class AppConfig {
   readonly accessTokenTtlMinutes: number;
   readonly refreshTokenTtlDays: number;
   readonly cookieSecure: boolean;
-  readonly trustProxy: boolean;
+  readonly trustProxy: number;
   readonly webOrigins: string[];
   readonly publicAppUrl: string;
   readonly timezone: string;
