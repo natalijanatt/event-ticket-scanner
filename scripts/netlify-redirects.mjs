@@ -11,7 +11,10 @@ if (!process.env.NETLIFY && !apiUrl) {
   process.exit(0);
 }
 if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(apiUrl)) {
-  console.error('netlify-redirects: set API_URL to the public HTTPS address of the API, e.g. https://your-api.up.railway.app');
+  console.error(
+    `netlify-redirects: API_URL is ${rawApiUrl ? `"${rawApiUrl}", which is not a valid address` : 'empty'}. ` +
+      'Set it to the public HTTPS address of the API, e.g. https://your-api.up.railway.app',
+  );
   process.exit(1);
 }
 if (!existsSync(dist)) {
