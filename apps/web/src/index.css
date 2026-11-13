@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Paper */
+    --canvas: 42 24% 95%;
+    --surface: 40 33% 99%;
+    --subtle: 42 20% 92%;
+    /* Ink */
+    --ink: 220 28% 14%;
+    --ink-muted: 220 10% 40%;
+    --ink-faint: 220 8% 58%;
+    /* Lines */
+    --line: 40 14% 86%;
+    --line-strong: 40 10% 76%;
+    /* Navy chrome (sidebar, scanner, ticket) */
+    --navy: 220 46% 10%;
+    --navy-raised: 220 38% 15%;
+    --navy-line: 220 26% 22%;
+    --navy-text: 40 30% 94%;
+    --navy-muted: 220 14% 64%;
+    /* The one accent */
+    --accent: 40 66% 55%;
+    --accent-strong: 38 70% 40%;
+    --accent-soft: 42 70% 92%;
+    /* Status */
+    --success: 156 62% 30%;
+    --success-soft: 150 40% 92%;
+    --danger: 8 64% 44%;
+    --danger-soft: 10 70% 95%;
+    --warning: 34 80% 36%;
+    --warning-soft: 42 80% 92%;
+    --info: 208 50% 38%;
+    --info-soft: 208 50% 94%;
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-canvas;
+  }
+
+  ::selection {
+    background: hsl(var(--accent) / 0.3);
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-[0.12em] text-ink-faint;
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
