@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dev-dist/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Secrets — never commit real environment files. `.env.example` is the template.
+.env
+.env.*
+!.env.example
+
+# Runtime data
+apps/api/uploads/
+apps/api/uploads-test/
+apps/api/.mail-outbox/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local Claude Code settings
+.claude/settings.local.json
