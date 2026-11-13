@@ -4,7 +4,11 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const dist = resolve(process.cwd(), 'apps/web/dist');
-const apiUrl = (process.env.API_URL ?? '').trim().replace(/\/+$/, '');
+const rawApiUrl = (process.env.API_URL ?? '').trim();
+// Be forgiving: accept a bare host, and a pasted trailing slash or "/api".
+const apiUrl = (rawApiUrl && !/^[a-z]+:\/\//i.test(rawApiUrl) ? `https://${rawApiUrl}` : rawApiUrl)
+  .replace(/\/+$/, '')
+  .replace(/\/api$/i, '');
 
 if (!process.env.NETLIFY && !apiUrl) {
   console.log('netlify-redirects: skipped (not a Netlify build and API_URL is not set).');
