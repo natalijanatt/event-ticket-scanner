@@ -10,6 +10,16 @@
     <!-- The app ships its own palette; opt out of browser "auto dark" recolouring,
          which would otherwise darken the white tile behind the ticket's QR code. -->
     <meta name="color-scheme" content="only light" />
+    <!-- The guest ticket (/t/…) is a dark page by design. Samsung Internet ignores
+         "only light" and force-darkens any page that does not announce dark support –
+         it greys out the QR code until it cannot be scanned. Announcing the ticket as
+         a dark page, before first paint, makes browsers leave its colours alone. -->
+    <script>
+      if (location.pathname.indexOf('/t/') === 0) {
+        document.querySelector('meta[name="color-scheme"]').content = 'dark';
+        document.documentElement.dataset.scheme = 'dark';
+      }
+    </script>
     <meta name="theme-color" content="#0D1524" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

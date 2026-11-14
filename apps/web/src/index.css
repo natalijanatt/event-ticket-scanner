@@ -38,6 +38,22 @@
     --info-soft: 208 50% 94%;
   }
 
+  /* The guest ticket page: already dark, so browsers must not darken it again (see index.html). */
+  :root[data-scheme='dark'] {
+    color-scheme: dark;
+  }
+
+  /*
+   * Deliberately a no-op. Samsung Internet decides whether to force its own dark
+   * mode by looking for a dark-scheme media query; its presence says "this site
+   * handles dark mode itself".
+   */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --dark-scheme-aware: 1;
+    }
+  }
+
   * {
     @apply border-line;
   }
