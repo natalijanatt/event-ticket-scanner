@@ -111,10 +111,16 @@ On Android/iOS use the browser's "Add to Home Screen" to install the scanner as 
   the provider lifecycle is simulated so the UI shows real status changes:
   `…@bounce.test` bounces, `…@fail.test` is rejected, `…@flaky.test` fails once then succeeds.
 - **`resend`** — real delivery through the Resend API.
-- **`gmail`** — real delivery through Gmail SMTP (`smtp.gmail.com:465`). Put the Gmail address in
-  `EMAIL_FROM` and an [app password](https://myaccount.google.com/apppasswords) in `EMAIL_APP_PASSWORD`.
+- **`gmail`** — real delivery from a Gmail account whose address is in `EMAIL_FROM`.
   Gmail has no delivery webhooks, so statuses stop at `Poslato`; bounces arrive in that account's inbox.
-  Limit: about 500 messages a day. The host must allow outbound SMTP.
+  Limit: about 500 messages a day. Two transports:
+  - **SMTP** (`smtp.gmail.com:465`): set `EMAIL_APP_PASSWORD` to an
+    [app password](https://myaccount.google.com/apppasswords). The host must allow outbound SMTP.
+  - **Gmail API** over HTTPS: set `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`
+    (takes precedence over SMTP). Use this where SMTP is blocked, e.g. Railway below the Pro plan.
+    In Google Cloud: enable the Gmail API, publish the OAuth consent screen (in "Testing" the token
+    expires after 7 days), create an OAuth client of type *Desktop app*, then run
+    `node scripts/gmail-auth.mjs <client-id> <client-secret>` and sign in with the sending account.
 
 Going live with Resend:
 
@@ -261,7 +267,7 @@ build, migration, start and health-check commands). Add a Redis service, then se
 | `JWT_ACCESS_SECRET`, `TICKET_TOKEN_ENC_KEY` | freshly generated (see `.env.example`) — not the development values |
 | `PUBLIC_APP_URL`, `WEB_ORIGINS` | the Netlify site URL, e.g. `https://your-site.netlify.app` |
 | `TRUST_PROXY` | `2` (Netlify → Railway), so rate limits see real client IPs |
-| `EMAIL_MODE`, `EMAIL_FROM`, `EMAIL_APP_PASSWORD`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` | see *E-mail* |
+| `EMAIL_MODE`, `EMAIL_FROM`, `EMAIL_APP_PASSWORD`, `GMAIL_*`, `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` | see *E-mail* |
 
 Generate a public domain for the service (Settings → Networking). Cover images live on local disk:
 attach a volume and point `UPLOAD_DIR` at it, or they disappear on every redeploy.

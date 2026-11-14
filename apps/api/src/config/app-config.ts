@@ -30,6 +30,10 @@ const envSchema = z.object({
   EMAIL_MODE: z.enum(['mock', 'resend', 'gmail']).default('mock'),
   /** Gmail app password (16 characters; spaces are ignored). Used when EMAIL_MODE=gmail. */
   EMAIL_APP_PASSWORD: z.string().optional().default(''),
+  /** Gmail API (OAuth) – used instead of SMTP when set; needed where outbound SMTP is blocked. */
+  GMAIL_CLIENT_ID: z.string().optional().default(''),
+  GMAIL_CLIENT_SECRET: z.string().optional().default(''),
+  GMAIL_REFRESH_TOKEN: z.string().optional().default(''),
   EMAIL_FROM: z.string().default('Pozivnice <pozivnice@example.com>'),
   RESEND_API_KEY: z.string().optional().default(''),
   RESEND_WEBHOOK_SECRET: z.string().optional().default(''),
@@ -63,6 +67,9 @@ export class AppConfig {
   /** Bare address from EMAIL_FROM ("Name <a@b>" → "a@b"). */
   readonly emailFromAddress: string;
   readonly emailAppPassword: string;
+  readonly gmailClientId: string;
+  readonly gmailClientSecret: string;
+  readonly gmailRefreshToken: string;
   readonly resendApiKey: string;
   readonly resendWebhookSecret: string;
   readonly emailEmbedQr: boolean;
@@ -97,6 +104,9 @@ export class AppConfig {
     this.emailFrom = e.EMAIL_FROM;
     this.emailFromAddress = (/<([^>]+)>/.exec(e.EMAIL_FROM)?.[1] ?? e.EMAIL_FROM).trim();
     this.emailAppPassword = e.EMAIL_APP_PASSWORD.replace(/\s+/g, '');
+    this.gmailClientId = e.GMAIL_CLIENT_ID.trim();
+    this.gmailClientSecret = e.GMAIL_CLIENT_SECRET.trim();
+    this.gmailRefreshToken = e.GMAIL_REFRESH_TOKEN.trim();
     this.resendApiKey = e.RESEND_API_KEY;
     this.resendWebhookSecret = e.RESEND_WEBHOOK_SECRET;
     this.emailEmbedQr = e.EMAIL_EMBED_QR;
@@ -111,7 +121,13 @@ export class AppConfig {
       }
     }
     if (this.emailMode === 'gmail') {
-      if (!this.emailAppPassword) throw new Error('EMAIL_MODE=gmail requires EMAIL_APP_PASSWORD');
+      const oauth = [this.gmailClientId, this.gmailClientSecret, this.gmailRefreshToken];
+      if (oauth.some(Boolean) && !oauth.every(Boolean)) {
+        throw new Error('Gmail API needs all of GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET and GMAIL_REFRESH_TOKEN');
+      }
+      if (!this.gmailRefreshToken && !this.emailAppPassword) {
+        throw new Error('EMAIL_MODE=gmail requires EMAIL_APP_PASSWORD (SMTP) or GMAIL_CLIENT_ID/GMAIL_CLIENT_SECRET/GMAIL_REFRESH_TOKEN (Gmail API)');
+      }
       if (!/^[^@\s]+@[^@\s]+$/.test(this.emailFromAddress)) {
         throw new Error('EMAIL_MODE=gmail requires EMAIL_FROM to contain the Gmail address, e.g. "Name <you@gmail.com>"');
       }
