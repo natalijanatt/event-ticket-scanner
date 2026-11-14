@@ -414,4 +414,11 @@ export interface PublicTicketDto {
   };
   /** Inline SVG markup of the QR code (generated server-side). */
   qrSvg: string;
+  /**
+   * The same code as a PNG data URL with its own white background and quiet
+   * zone. Preferred for display: forced dark mode repaints SVG fills and CSS
+   * backgrounds but leaves bitmaps alone. Optional only so a newer web build
+   * keeps working against an older API.
+   */
+  qrPng?: string;
 }

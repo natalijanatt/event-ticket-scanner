@@ -111,7 +111,8 @@ export function TicketPage() {
   const ticket = query.data;
   const notice = ticketNotice(ticket);
   const usable = notice === null;
-  const qrSrc = `data:image/svg+xml;utf8,${encodeURIComponent(ticket.qrSvg)}`;
+  // The PNG survives forced dark mode (see PublicTicketDto.qrPng); SVG is the fallback for an older API.
+  const qrSrc = ticket.qrPng ?? `data:image/svg+xml;utf8,${encodeURIComponent(ticket.qrSvg)}`;
 
   async function saveImage() {
     if (!cardRef.current) return;
@@ -199,8 +200,15 @@ export function TicketPage() {
                 </div>
               )}
 
-              {/* White quiet zone + maximum contrast: scans reliably even on dim screens. */}
-              <div className={cn('mx-auto w-full max-w-[280px] rounded-xl bg-white p-3', !usable && 'opacity-35 grayscale')}>
+              {/*
+                White quiet zone + maximum contrast: scans reliably even on dim screens.
+                The quiet zone is part of the image itself; the tile's white is painted as a
+                gradient because forced dark mode darkens background colours but not background images.
+              */}
+              <div
+                className={cn('mx-auto w-full max-w-[280px] overflow-hidden rounded-xl bg-white p-1', !usable && 'opacity-35 grayscale')}
+                style={{ backgroundImage: 'linear-gradient(#fff, #fff)', colorScheme: 'only light' }}
+              >
                 <img src={qrSrc} alt={usable ? 'QR kod ulaznice — pokaži ga na ulazu' : 'QR kod ulaznice (karta više ne važi)'} className="aspect-square w-full" />
               </div>
 

@@ -646,6 +646,7 @@ describe('public ticket page', () => {
       const res = await request(app.getHttpServer()).get(`/api/public/tickets/${token}`).expect(200);
       expect(res.body).toMatchObject({ reference: tickets[0].reference, status: 'VALID', guestName: 'Marko Petrović', ticketType: { name: 'VIP' } });
       expect(res.body.qrSvg).toContain('<svg');
+      expect(res.body.qrPng).toMatch(/^data:image\/png;base64,/);
       expect(res.headers['cache-control']).toMatch(/no-store/);
       expect(res.headers['x-robots-tag']).toMatch(/noindex/);
       expect(res.headers['referrer-policy']).toBe('no-referrer');

@@ -46,6 +46,18 @@ export class PublicTicketsController {
       color: { dark: '#0B1220', light: '#FFFFFF' },
     });
 
+    // Forced dark mode (Samsung Internet, Chrome "auto dark") repaints CSS
+    // backgrounds and SVG fills, which leaves a dark code on a dark tile. A
+    // bitmap is left alone, so the PNG carries its own white background and the
+    // full 4-module quiet zone, in pure black on white.
+    const qrPng = await QRCode.toDataURL(this.crypto.ticketUrl(token), {
+      type: 'image/png',
+      errorCorrectionLevel: 'M',
+      margin: 4,
+      width: 720,
+      color: { dark: '#000000', light: '#FFFFFF' },
+    });
+
     return {
       reference: ticket.reference,
       status: ticket.status,
@@ -65,6 +77,7 @@ export class PublicTicketsController {
         organizerLogoUrl: ticket.event.organizer.logoUrl,
       },
       qrSvg,
+      qrPng,
     };
   }
 }

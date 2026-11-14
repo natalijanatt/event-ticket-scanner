@@ -76,7 +76,7 @@ export class InvitationRenderer {
 
     if (embedQr && tickets.length <= MAX_EMBEDDED_QR) {
       for (const [index, ticket] of tickets.entries()) {
-        const png = await QRCode.toBuffer(ticket.url, { type: 'png', width: 336, margin: 2, errorCorrectionLevel: 'M' });
+        const png = await QRCode.toBuffer(ticket.url, { type: 'png', width: 336, margin: 4, errorCorrectionLevel: 'M' });
         if (mode === 'preview') {
           ticket.qrSrc = `data:image/png;base64,${png.toString('base64')}`;
         } else {

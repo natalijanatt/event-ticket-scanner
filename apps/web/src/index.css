@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    /* One fixed palette: keep browsers from auto-darkening it (see index.html). */
+    color-scheme: only light;
     /* Paper */
     --canvas: 42 24% 95%;
     --surface: 40 33% 99%;

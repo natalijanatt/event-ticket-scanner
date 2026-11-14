@@ -25,6 +25,7 @@ const ticket: PublicTicketDto = {
     organizerLogoUrl: null,
   },
   qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>',
+  qrPng: 'data:image/png;base64,iVBORw0KGgo=',
 };
 
 const me = { path: '/auth/me', status: 401, body: {} };
@@ -48,7 +49,7 @@ describe('digital ticket (guest view)', () => {
     expect(screen.getByText('VIP ulaz je sa leve strane.')).toBeInTheDocument();
 
     const qr = screen.getByAltText('QR kod ulaznice — pokaži ga na ulazu') as HTMLImageElement;
-    expect(qr.src).toMatch(/^data:image\/svg\+xml/);
+    expect(qr.src).toMatch(/^data:image\/png/);
     expect(screen.getByRole('button', { name: /Sačuvaj sliku/ })).toBeEnabled();
     expect(screen.getByRole('button', { name: /Štampaj \/ PDF/ })).toBeEnabled();
 
