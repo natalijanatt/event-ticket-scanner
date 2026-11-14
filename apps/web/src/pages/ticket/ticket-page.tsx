@@ -50,6 +50,57 @@ function Message({ icon: Icon, title, text, action }: { icon: React.ComponentTyp
   );
 }
 
+const QR_CANVAS_PX = 720;
+
+/**
+ * The QR code, painted onto a <canvas>.
+ *
+ * Samsung Internet's dark mode cannot be switched off by a page: it recolours
+ * CSS backgrounds, SVG fills and "simple" images, which turned the code into
+ * grey-on-grey that scanners could not read. Pixels drawn on a canvas are not
+ * part of the styled document, so they are shown exactly as drawn – white
+ * background and quiet zone included. The plain <img> stays as the fallback
+ * until the canvas is painted (and wherever canvas is unavailable).
+ */
+function QrCode({ src, label }: { src: string; label: string }) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [painted, setPainted] = React.useState(false);
+
+  React.useEffect(() => {
+    setPainted(false);
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      const canvas = canvasRef.current;
+      if (cancelled || !canvas) return;
+      try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        // Extra white around the image, so the quiet zone never depends on the page behind it.
+        const pad = Math.round(QR_CANVAS_PX * 0.04);
+        ctx.imageSmoothingEnabled = false;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, QR_CANVAS_PX, QR_CANVAS_PX);
+        ctx.drawImage(image, pad, pad, QR_CANVAS_PX - 2 * pad, QR_CANVAS_PX - 2 * pad);
+        setPainted(true);
+      } catch {
+        /* keep the <img> fallback */
+      }
+    };
+    image.src = src;
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+
+  return (
+    <>
+      <canvas ref={canvasRef} width={QR_CANVAS_PX} height={QR_CANVAS_PX} role="img" aria-label={label} className={cn('aspect-square w-full', !painted && 'hidden')} />
+      {!painted && <img src={src} alt={label} className="aspect-square w-full" />}
+    </>
+  );
+}
+
 /**
  * The guest's digital ticket. Public, but reachable only through its
  * unguessable link. Strictly read-only: opening, refreshing, downloading or
@@ -209,7 +260,7 @@ export function TicketPage() {
                 className={cn('mx-auto w-full max-w-[280px] overflow-hidden rounded-xl bg-white p-1', !usable && 'opacity-35 grayscale')}
                 style={{ backgroundImage: 'linear-gradient(#fff, #fff)', colorScheme: 'only light' }}
               >
-                <img src={qrSrc} alt={usable ? 'QR kod ulaznice — pokaži ga na ulazu' : 'QR kod ulaznice (karta više ne važi)'} className="aspect-square w-full" />
+                <QrCode src={qrSrc} label={usable ? 'QR kod ulaznice — pokaži ga na ulazu' : 'QR kod ulaznice (karta više ne važi)'} />
               </div>
 
               <div className="mt-5 flex items-end justify-between gap-4">
