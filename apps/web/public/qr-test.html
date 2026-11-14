@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="sr-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>QR proba — tamni režim</title>
+<style>
+  body { margin: 0; padding: 12px; font-family: system-ui, sans-serif; background: #0d1524; color: #eee; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  p { font-size: 12px; margin: 0 0 10px; color: #aab; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cell { background: #fbfaf6; color: #131a26; border-radius: 10px; padding: 8px; }
+  .cell b { display: block; font-size: 13px; margin-bottom: 6px; }
+  .box { width: 100%; aspect-ratio: 1; display: block; }
+  .box > * { width: 100%; height: 100%; display: block; }
+  .mods { display: grid; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<h1>QR proba — tamni režim</h1>
+<p>Otvori u Samsung Internet browseru sa uključenim tamnim režimom i pošalji snimak ekrana cele stranice (može u dva dela).</p>
+<div class="grid" id="grid"></div>
+<script>
+(function () {
+  var N = 29, BITS = '1111111001000011110110111111110000010101101000010001000001101110100000101101001010111011011101000100101000100101110110111010101000110111101011101100000100001110001010010000011111111010101010101010111111100000000000101010001100000000101010100110101010100000100100111010010010111101010100100110110111001010100110001110111100110010000010000001100100100100111010010011110111100101110101001000010011100011001001111001101010010111000101110110100110100000001101111010101011110110011110000101111001011010101001000010101001110011011011111001101010110001101001101010001101111111010100111010100010111001101001111111100000000000011111011100110001011111111110000011010011101011011100000100101100001101000110001011101010110001001011111001110111010011111000010110010100101110101010011010001001110011000001000000101001110100001011111110110110111011100110011', Q = 4, T = N + 2 * Q, PX = 12, S = T * PX;
+  function dark(x, y) { return x >= 0 && y >= 0 && x < N && y < N && BITS.charAt(y * N + x) === '1'; }
+  var seed = 7;
+  function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+
+  // opts: inverted, noisy (many dark/light shades), frame (photo-like colourful border)
+  function draw(opts) {
+    opts = opts || {};
+    var c = document.createElement('canvas');
+    var F = opts.frame ? 3 * PX : 0;
+    c.width = c.height = S + 2 * F;
+    var g = c.getContext('2d');
+    if (F) {
+      for (var i = 0; i < c.width; i += 4) for (var j = 0; j < c.height; j += 4) {
+        if (i >= F && j >= F && i < F + S && j < F + S) continue;
+        g.fillStyle = 'hsl(' + Math.floor(rnd() * 360) + ',' + (50 + Math.floor(rnd() * 50)) + '%,' + (25 + Math.floor(rnd() * 50)) + '%)';
+        g.fillRect(i, j, 4, 4);
+      }
+    }
+    for (var y = 0; y < T; y++) for (var x = 0; x < T; x++) {
+      var d = dark(x - Q, y - Q);
+      if (opts.inverted) d = !d;
+      if (opts.noisy) {
+        g.fillStyle = d
+          ? 'rgb(' + Math.floor(rnd() * 70) + ',' + Math.floor(rnd() * 70) + ',' + Math.floor(rnd() * 90) + ')'
+          : 'rgb(' + (225 + Math.floor(rnd() * 30)) + ',' + (225 + Math.floor(rnd() * 30)) + ',' + (225 + Math.floor(rnd() * 30)) + ')';
+      } else {
+        g.fillStyle = d ? '#000' : '#fff';
+      }
+      g.fillRect(F + x * PX, F + y * PX, PX, PX);
+    }
+    return c;
+  }
+  function img(canvas, type, style) {
+    var el = new Image();
+    el.src = canvas.toDataURL(type || 'image/png', 0.92);
+    if (style) el.style.cssText += style;
+    return el;
+  }
+  function add(no, title, node) {
+    var cell = document.createElement('div'); cell.className = 'cell';
+    var b = document.createElement('b'); b.textContent = no + '. ' + title;
+    var box = document.createElement('div'); box.className = 'box';
+    box.appendChild(node); cell.appendChild(b); cell.appendChild(box);
+    document.getElementById('grid').appendChild(cell);
+  }
+  function safe(no, title, make) { try { add(no, title, make()); } catch (e) { var s = document.createElement('span'); s.textContent = 'greška: ' + e; add(no, title, s); } }
+
+  safe(1, 'PNG slika', function () { return img(draw()); });
+  safe(2, 'Canvas', function () { return draw(); });
+  safe(3, 'PNG, šarene nijanse', function () { return img(draw({ noisy: true })); });
+  safe(4, 'PNG, nijanse + šareni okvir', function () { return img(draw({ noisy: true, frame: true })); });
+  safe(5, 'JPEG, nijanse + okvir', function () { return img(draw({ noisy: true, frame: true }), 'image/jpeg'); });
+  safe(6, 'Canvas, nijanse + okvir', function () { return draw({ noisy: true, frame: true }); });
+  safe(7, 'CSS pozadinska slika', function () {
+    var d = document.createElement('div');
+    d.style.background = 'url(' + draw().toDataURL() + ') center / contain no-repeat';
+    return d;
+  });
+  safe(8, 'CSS gradijenti (bez slike)', function () {
+    var d = document.createElement('div'); d.className = 'mods';
+    d.style.gridTemplateColumns = 'repeat(' + T + ',1fr)';
+    for (var y = 0; y < T; y++) for (var x = 0; x < T; x++) {
+      var m = document.createElement('i');
+      m.style.backgroundImage = dark(x - Q, y - Q) ? 'linear-gradient(#000,#000)' : 'linear-gradient(#fff,#fff)';
+      d.appendChild(m);
+    }
+    return d;
+  });
+  safe(9, 'Obrnuta slika (belo na crnom)', function () { return img(draw({ inverted: true })); });
+  safe(10, 'Obrnuta slika + CSS invert', function () { return img(draw({ inverted: true }), null, 'filter:invert(1);'); });
+  safe(11, 'Video', function () {
+    var c = draw();
+    var v = document.createElement('video');
+    v.muted = true; v.autoplay = true; v.playsInline = true; v.setAttribute('playsinline', '');
+    v.srcObject = c.captureStream(5);
+    // keep producing frames so the stream is not empty
+    setInterval(function () { var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 1, 1); }, 200);
+    v.play().catch(function () {});
+    return v;
+  });
+  safe(12, 'SVG slika (staro stanje)', function () {
+    var p = '';
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) if (dark(x, y)) p += 'M' + (x + Q) + ' ' + (y + Q) + 'h1v1h-1z';
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + T + ' ' + T + '"><path fill="#fff" d="M0 0h' + T + 'v' + T + 'H0z"/><path fill="#000" d="' + p + '"/></svg>';
+    var el = new Image(); el.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg); return el;
+  });
+})();
+</script>
+</body>
+</html>
