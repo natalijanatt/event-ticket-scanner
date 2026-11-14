@@ -16,7 +16,7 @@ export interface OutgoingEmail {
 }
 
 export interface EmailProvider {
-  readonly name: 'mock' | 'resend';
+  readonly name: 'mock' | 'resend' | 'gmail';
   /** Resolves with the provider's message id once the provider ACCEPTED the message. */
   send(message: OutgoingEmail): Promise<{ id: string }>;
 }

@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { AppConfig } from '../config/app-config';
 import { EmailService } from './email.service';
 import { EMAIL_PROVIDER } from './email.types';
+import { GmailProvider } from './gmail.provider';
 import { MailboxController } from './mailbox.controller';
 import { MockEmailProvider } from './mock.provider';
 import { ResendProvider } from './resend.provider';
@@ -17,7 +18,12 @@ import { ResendProvider } from './resend.provider';
     {
       provide: EMAIL_PROVIDER,
       inject: [AppConfig],
-      useFactory: (config: AppConfig) => (config.emailMode === 'resend' ? new ResendProvider(config) : new MockEmailProvider(config)),
+      useFactory: (config: AppConfig) =>
+        config.emailMode === 'resend'
+          ? new ResendProvider(config)
+          : config.emailMode === 'gmail'
+            ? new GmailProvider(config)
+            : new MockEmailProvider(config),
     },
     EmailService,
   ],

@@ -81,6 +81,14 @@ export function SettingsPage() {
               Mejlovi se isporučuju gostima preko servisa Resend. Status isporuke svake pozivnice vidiš na kartici „Pozivnice” u okviru događaja.
             </p>
           </div>
+        ) : config.data.emailMode === 'gmail' ? (
+          <div className="space-y-2">
+            <Badge tone="success">Stvarno slanje je aktivno</Badge>
+            <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
+              Mejlovi se šalju gostima sa Gmail naloga. Status „Poslato” znači da je Gmail preuzeo poruku; potvrda isporuke ne stiže u aplikaciju, a
+              odbijene poruke se vraćaju u sanduče tog naloga. Gmail dozvoljava oko 500 poruka dnevno.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             <Badge tone="warning">Test režim</Badge>

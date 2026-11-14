@@ -3,12 +3,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EMAIL_PROVIDER, type EmailProvider, type OutgoingEmail } from './email.types';
 import { renderPasswordReset } from './templates/password-reset.template';
 
-/** Thin facade over the configured provider (mock or Resend). */
+/** Thin facade over the configured provider (mock, Resend or Gmail). */
 @Injectable()
 export class EmailService {
   constructor(@Inject(EMAIL_PROVIDER) private readonly provider: EmailProvider) {}
 
-  get providerName(): 'mock' | 'resend' {
+  get providerName(): EmailProvider['name'] {
     return this.provider.name;
   }
 

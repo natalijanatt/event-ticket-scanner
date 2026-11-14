@@ -80,7 +80,7 @@ export interface StaffDto {
 }
 
 export interface AppConfigDto {
-  emailMode: 'mock' | 'resend';
+  emailMode: 'mock' | 'resend' | 'gmail';
   timezone: string;
 }
 
