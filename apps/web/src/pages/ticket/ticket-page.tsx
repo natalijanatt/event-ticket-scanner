@@ -50,6 +50,10 @@ function Message({ icon: Icon, title, text, action }: { icon: React.ComponentTyp
   );
 }
 
+declare const __BUILD_ID__: string | undefined;
+/** Short commit id of this build (absent under test). */
+const BUILD_ID = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : '';
+
 const QR_CANVAS_PX = 720;
 
 /**
@@ -306,6 +310,7 @@ export function TicketPage() {
         <p className="mt-6 text-center text-xs leading-relaxed text-navy-muted print:hidden">
           Ova karta važi za jednu osobu i jedan ulazak. Ko ima link, može da je iskoristi — ne deli ga javno.
         </p>
+        {BUILD_ID && <p className="mt-3 text-center font-mono text-[10px] text-navy-muted/60 print:hidden">verzija {BUILD_ID}</p>}
       </main>
     </Shell>
   );

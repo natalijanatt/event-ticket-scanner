@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* One fixed palette: keep browsers from auto-darkening it (see index.html). */
-    color-scheme: only light;
+    color-scheme: light;
     /* Paper */
     --canvas: 42 24% 95%;
     --surface: 40 33% 99%;
@@ -38,19 +38,16 @@
     --info-soft: 208 50% 94%;
   }
 
-  /* The guest ticket page: already dark, so browsers must not darken it again (see index.html). */
-  :root[data-scheme='dark'] {
-    color-scheme: dark;
-  }
-
   /*
-   * Deliberately a no-op. Samsung Internet decides whether to force its own dark
-   * mode by looking for a dark-scheme media query; its presence says "this site
-   * handles dark mode itself".
+   * The "dark theme" exists and is identical to the light one. A browser that
+   * honours prefers-color-scheme (Samsung Internet with "use website dark theme")
+   * then finds a site that handles dark mode itself, with every colour explicit,
+   * and has nothing left to darken.
    */
   @media (prefers-color-scheme: dark) {
-    :root {
-      --dark-scheme-aware: 1;
+    html {
+      color-scheme: light !important;
+      background-color: hsl(var(--canvas));
     }
   }
 

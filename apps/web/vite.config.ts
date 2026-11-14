@@ -11,6 +11,8 @@ const https = process.env.VITE_DEV_HTTPS === 'true';
 const apiTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000';
 
 export default defineConfig({
+  // Shown in small print on the ticket page: tells at a glance which build a phone is running.
+  define: { __BUILD_ID__: JSON.stringify((process.env.COMMIT_REF ?? 'dev').slice(0, 7)) },
   plugins: [
     react(),
     ...(https ? [basicSsl()] : []),
