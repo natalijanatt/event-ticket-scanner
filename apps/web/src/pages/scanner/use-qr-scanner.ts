@@ -1,4 +1,5 @@
 import { BrowserCodeReader, BrowserQRCodeReader, type IScannerControls } from '@zxing/browser';
+import { ChecksumException, FormatException, NotFoundException } from '@zxing/library';
 import * as React from 'react';
 
 export type CameraStatus =
@@ -28,6 +29,11 @@ const DEVICE_KEY = 'scanner.cameraId';
 /** The same code must leave the frame (or this long must pass) before it is reported again. */
 const REPEAT_GUARD_MS = 4000;
 
+/** "No readable code in this frame" – the only errors ZXing's scan loop survives. */
+function isRetryable(error: unknown): boolean {
+  return error instanceof NotFoundException || error instanceof ChecksumException || error instanceof FormatException;
+}
+
 function readPreferredDevice(): string | null {
   try {
     return localStorage.getItem(DEVICE_KEY);
@@ -50,6 +56,7 @@ export function useQrScanner(onDetect: (text: string) => void, paused: boolean):
   const onDetectRef = React.useRef(onDetect);
   const pausedRef = React.useRef(paused);
   const lastRef = React.useRef<{ text: string; at: number }>({ text: '', at: 0 });
+  const startRef = React.useRef<(deviceId?: string) => Promise<void>>(async () => undefined);
 
   const [status, setStatus] = React.useState<CameraStatus>('idle');
   const [devices, setDevices] = React.useState<MediaDeviceInfo[]>([]);
@@ -91,16 +98,45 @@ export function useQrScanner(onDetect: (text: string) => void, paused: boolean):
       });
 
       const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 120, delayBetweenScanSuccess: 300 });
-      const handle = (result: { getText(): string } | undefined) => {
-        if (!result || pausedRef.current) return;
-        const text = result.getText();
-        const now = Date.now();
-        if (text === lastRef.current.text && now - lastRef.current.at < REPEAT_GUARD_MS) {
-          lastRef.current.at = now; // still in frame – keep extending the guard
-          return;
+
+      // ZXing's scan loop ends for good – and releases the camera – on ANY error
+      // other than "nothing found". A blurred or half-visible code (typical right
+      // after a scan, while the phone is being moved away) can make the decoder
+      // throw something else, which used to leave a dead scanner until a page
+      // refresh. Such a frame is simply a frame without a code.
+      const decodeFromCanvas = reader.decodeFromCanvas.bind(reader);
+      reader.decodeFromCanvas = (canvas) => {
+        try {
+          return decodeFromCanvas(canvas);
+        } catch (err) {
+          throw isRetryable(err) ? err : new NotFoundException();
         }
-        lastRef.current = { text, at: now };
-        onDetectRef.current(text);
+      };
+
+      // Runs after every decode attempt. It must never throw: an exception here
+      // would also end the scan loop.
+      const handle = (result: { getText(): string } | undefined, error?: unknown) => {
+        try {
+          if (error && !isRetryable(error)) {
+            // The loop is about to stop and drop the stream – bring the camera back.
+            setTimeout(() => void startRef.current(), 0);
+            return;
+          }
+          // A frozen preview would keep "seeing" the previous ticket forever.
+          if (video.paused && !video.ended && video.srcObject) void video.play().catch(() => undefined);
+
+          if (!result || pausedRef.current) return;
+          const text = result.getText();
+          const now = Date.now();
+          if (text === lastRef.current.text && now - lastRef.current.at < REPEAT_GUARD_MS) {
+            lastRef.current.at = now; // still in frame – keep extending the guard
+            return;
+          }
+          lastRef.current = { text, at: now };
+          onDetectRef.current(text);
+        } catch {
+          /* keep scanning */
+        }
       };
 
       try {
@@ -121,6 +157,10 @@ export function useQrScanner(onDetect: (text: string) => void, paused: boolean):
 
         const track = (video.srcObject as MediaStream | null)?.getVideoTracks()[0];
         const activeId = track?.getSettings().deviceId ?? null;
+        // The OS or another app took the camera away (not fired by our own stop()).
+        track?.addEventListener('ended', () => {
+          if (controlsRef.current === controls) void startRef.current();
+        });
         setDeviceId(activeId);
         // Labels are only available after permission was granted.
         setDevices(await BrowserCodeReader.listVideoInputDevices().catch(() => []));
@@ -133,6 +173,8 @@ export function useQrScanner(onDetect: (text: string) => void, paused: boolean):
     },
     [deviceId, stop],
   );
+
+  startRef.current = start;
 
   const switchCamera = React.useCallback(() => {
     if (devices.length < 2) return;
