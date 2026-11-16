@@ -336,6 +336,19 @@ describe('guest management', () => {
     const exported = await post(organizerA, `/api/events/${event.id}/guests/export`).expect(200);
     expect(exported.headers['content-type']).toMatch(/text\/csv/);
     expect(exported.text).toContain(`"'=HYPERLINK(""http://x"")"`);
+
+    // The Excel export follows the list filters and is a real .xlsx (zip) file.
+    const xlsx = await post(organizerA, `/api/events/${event.id}/guests/export`, { format: 'xlsx', filters: { search: 'import' } })
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    expect(xlsx.headers['content-type']).toMatch(/spreadsheetml/);
+    expect(xlsx.headers['content-disposition']).toMatch(/\.xlsx"$/);
+    expect((xlsx.body as Buffer).subarray(0, 2).toString()).toBe('PK');
   });
 });
 

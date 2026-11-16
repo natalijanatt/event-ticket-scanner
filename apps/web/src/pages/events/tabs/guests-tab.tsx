@@ -2,6 +2,7 @@ import {
   EMAIL_STATUS_LABELS,
   GUEST_TICKET_STATE_LABELS,
   type GenerateTicketsResult,
+  type GuestExportFormat,
   type GuestEmailStatus,
   type GuestRowDto,
   type GuestTicketState,
@@ -14,6 +15,8 @@ import {
   ChevronDown,
   Download,
   Eye,
+  FileSpreadsheet,
+  FileText,
   FileUp,
   ListPlus,
   MoreHorizontal,
@@ -34,7 +37,7 @@ import { EmailStatusBadge, GuestTicketBadge, TicketTypeTag } from '@/components/
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/controls';
 import { ConfirmDialog } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SearchInput } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/ui/states';
@@ -174,10 +177,11 @@ export function EventGuestsTab() {
     onError: (err) => toast.error(errorMessage(err)),
   });
 
-  const exportCsv = useMutation({
-    mutationFn: async (ids?: string[]) => {
-      const res = await api.post<Response>(`/events/${event.id}/guests/export`, ids ? { eventGuestIds: ids } : {}, { raw: true });
-      const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'gosti.csv';
+  // Without an explicit selection the export follows the active filters.
+  const exportGuests = useMutation({
+    mutationFn: async ({ format, ids }: { format: GuestExportFormat; ids?: string[] }) => {
+      const res = await api.post<Response>(`/events/${event.id}/guests/export`, ids ? { format, eventGuestIds: ids } : { format, filters }, { raw: true });
+      const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? `gosti.${format}`;
       downloadFile(await res.blob(), name);
     },
     onSuccess: () => toast.success('Lista gostiju je preuzeta.'),
@@ -258,9 +262,22 @@ export function EventGuestsTab() {
           </Select>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="secondary" onClick={() => exportCsv.mutate(undefined)} loading={exportCsv.isPending && selected.size === 0} disabled={total === 0}>
-            <Download /> Izvezi
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" loading={exportGuests.isPending} disabled={total === 0}>
+                <Download /> Izvezi <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuLabel>{hasFilters ? `Filtrirani gosti (${formatNumber(total)})` : `Svi gosti (${formatNumber(total)})`}</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => exportGuests.mutate({ format: 'xlsx' })}>
+                <FileSpreadsheet /> Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => exportGuests.mutate({ format: 'csv' })}>
+                <FileText /> CSV (.csv)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {addMenu}
         </div>
       </div>
@@ -313,8 +330,11 @@ export function EventGuestsTab() {
                 <DropdownMenuItem onSelect={() => setSendTarget({ ids: selectedIds, mode: 'RESEND' })}>
                   <RotateCw /> Pošalji pozivnice ponovo
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => exportCsv.mutate(selectedIds)}>
-                  <Download /> Izvezi izabrane
+                <DropdownMenuItem onSelect={() => exportGuests.mutate({ format: 'xlsx', ids: selectedIds })}>
+                  <FileSpreadsheet /> Izvezi izabrane u Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => exportGuests.mutate({ format: 'csv', ids: selectedIds })}>
+                  <FileText /> Izvezi izabrane u CSV
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

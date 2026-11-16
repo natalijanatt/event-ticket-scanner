@@ -5,6 +5,7 @@ import {
   GUEST_TICKET_STATE_LABELS,
   type AddGuestInput,
   type BulkGuestsResult,
+  type ExportGuestsInput,
   type GuestEmailStatus,
   type GuestInput,
   type GuestMutationResult,
@@ -27,6 +28,7 @@ import { AppConfig } from '../config/app-config';
 import { InvitationsService } from '../invitations/invitations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketsService } from '../tickets/tickets.service';
+import { buildGuestWorkbook, XLSX_MIME } from './guest-export';
 import { parseGuestFile } from './guest-import';
 
 const rowInclude = {
@@ -262,40 +264,95 @@ export class GuestsService {
     return { removed: removable.length, skippedCheckedIn: candidates.length - removable.length };
   }
 
-  async exportCsv(user: RequestUser, eventId: string, eventGuestIds?: string[]): Promise<{ filename: string; csv: string }> {
+  /**
+   * Exports the guest list as CSV or as a formatted Excel workbook. An explicit
+   * selection wins; otherwise the list filters apply, so the file matches what
+   * the organizer sees on screen.
+   */
+  async export(
+    user: RequestUser,
+    eventId: string,
+    input: ExportGuestsInput,
+  ): Promise<{ filename: string; contentType: string; body: string | Buffer }> {
     const event = await this.access.eventForManage(user, eventId);
-    let rows = await this.filteredRows(event.id, {});
-    if (eventGuestIds?.length) {
-      const wanted = new Set(eventGuestIds);
-      rows = rows.filter((r) => wanted.has(r.id));
-    }
+    const selection = input.eventGuestIds?.length ? new Set(input.eventGuestIds) : null;
+    const filters = selection ? {} : (input.filters ?? {});
+    let rows = await this.filteredRows(event.id, filters);
+    if (selection) rows = rows.filter((r) => selection.has(r.id));
+
+    const slug = event.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'dj').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const basename = `gosti-${slug || 'dogadjaj'}`;
     const tz = this.config.timezone;
-    const csv = toCsv(
-      ['Ime', 'Prezime', 'Email', 'Telefon', 'Tip karte', 'Broj karata', 'Status pozivnice', 'Status karte', 'Iskorišćeno karata', 'Vreme ulaska', 'Napomena'],
-      rows.map((r) => [
-        r.firstName,
-        r.lastName,
-        r.email,
-        r.phone ?? '',
-        r.ticketType.name,
-        r.ticketQuantity,
-        EMAIL_STATUS_LABELS[r.emailStatus],
-        GUEST_TICKET_STATE_LABELS[r.ticketState],
-        r.tickets.used,
-        r.firstCheckInAt ? formatDateTimeCompact(new Date(r.firstCheckInAt), tz) : '',
-        r.notes ?? '',
-      ]),
-    );
+
+    let result: { filename: string; contentType: string; body: string | Buffer };
+    if (input.format === 'xlsx') {
+      const tickets = await this.prisma.ticket.findMany({
+        where: { eventId: event.id },
+        select: {
+          eventGuestId: true,
+          reference: true,
+          status: true,
+          createdAt: true,
+          usedAt: true,
+          revokedAt: true,
+          ticketType: { select: { name: true } },
+          scannedBy: { select: { firstName: true, lastName: true } },
+        },
+      });
+      const scope: string[] = [];
+      if (selection) scope.push(`Izabrani gosti (${rows.length})`);
+      if (filters.search?.trim()) scope.push(`Pretraga: „${filters.search.trim()}”`);
+      if (filters.ticketTypeId) scope.push(`Tip karte: ${rows[0]?.ticketType.name ?? 'izabrani tip'}`);
+      if (filters.emailStatus) scope.push(`Pozivnica: ${EMAIL_STATUS_LABELS[filters.emailStatus]}`);
+      if (filters.ticketState) scope.push(`Karta: ${GUEST_TICKET_STATE_LABELS[filters.ticketState]}`);
+
+      const body = await buildGuestWorkbook({
+        event,
+        guests: rows,
+        tickets: tickets.map((t) => ({
+          eventGuestId: t.eventGuestId,
+          reference: t.reference,
+          ticketTypeName: t.ticketType.name,
+          status: t.status,
+          createdAt: t.createdAt,
+          usedAt: t.usedAt,
+          revokedAt: t.revokedAt,
+          scannedBy: t.scannedBy ? `${t.scannedBy.firstName} ${t.scannedBy.lastName}`.trim() : null,
+        })),
+        timeZone: tz,
+        exportedAt: new Date(),
+        scope: scope.length > 0 ? scope.join(' · ') : null,
+      });
+      result = { filename: `${basename}.xlsx`, contentType: XLSX_MIME, body };
+    } else {
+      const csv = toCsv(
+        ['Ime', 'Prezime', 'Email', 'Telefon', 'Tip karte', 'Broj karata', 'Status pozivnice', 'Status karte', 'Iskorišćeno karata', 'Vreme ulaska', 'Napomena'],
+        rows.map((r) => [
+          r.firstName,
+          r.lastName,
+          r.email,
+          r.phone ?? '',
+          r.ticketType.name,
+          r.ticketQuantity,
+          EMAIL_STATUS_LABELS[r.emailStatus],
+          GUEST_TICKET_STATE_LABELS[r.ticketState],
+          r.tickets.used,
+          r.firstCheckInAt ? formatDateTimeCompact(new Date(r.firstCheckInAt), tz) : '',
+          r.notes ?? '',
+        ]),
+      );
+      result = { filename: `${basename}.csv`, contentType: 'text/csv; charset=utf-8', body: csv };
+    }
+
     await this.audit.log({
       actorId: user.id,
       organizerId: event.organizerId,
       action: 'guests.export',
       entityType: 'event',
       entityId: event.id,
-      metadata: { rows: rows.length },
+      metadata: { rows: rows.length, format: input.format },
     });
-    const slug = event.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'dj').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    return { filename: `gosti-${slug || 'dogadjaj'}.csv`, csv };
+    return result;
   }
 
   async import(

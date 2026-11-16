@@ -186,7 +186,7 @@ only `/api/scanner/*`, only for events they are assigned to, and never see e-mai
 **Other**
 
 - Guest ticket page: `Cache-Control: no-store`, `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`, no analytics or third-party resources (fonts are self-hosted). Viewing or downloading never changes ticket state.
-- Imports: 2 MB / 5,000-row limits, type detected from content, `.xlsx` cells read as text (formulas are never evaluated). CSV exports neutralize formula injection.
+- Imports: 2 MB / 5,000-row limits, type detected from content, `.xlsx` cells read as text (formulas are never evaluated). CSV exports neutralize formula injection; Excel exports (guests, tickets and summary sheets) write guest input as plain string cells, never formulas.
 - Uploaded cover images are validated by magic bytes and stored under random names.
 - Logs contain paths and ids only — no request bodies, e-mail addresses or tokens.
 - **Retention:** each organizer sets `retentionDays` (Podešavanja). A nightly job anonymizes guests whose last event ended longer ago than that: name, e-mail, phone, notes and the encrypted ticket link are erased; anonymous ticket and scan-log rows remain as the minimal audit record.

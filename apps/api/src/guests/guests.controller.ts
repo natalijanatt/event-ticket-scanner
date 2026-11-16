@@ -12,6 +12,7 @@ import {
   type BulkGuestsInput,
   type BulkGuestsResult,
   type EventGuestIdsInput,
+  type ExportGuestsInput,
   type GuestEmailStatus,
   type GuestMutationResult,
   type GuestRowDto,
@@ -101,13 +102,13 @@ export class GuestsController {
   async export(
     @CurrentUser() user: RequestUser,
     @Param('eventId', Uuid) eventId: string,
-    @Body(zod(exportGuestsSchema)) body: { eventGuestIds?: string[] },
+    @Body(zod(exportGuestsSchema)) body: ExportGuestsInput,
     @Res() res: Response,
   ): Promise<void> {
-    const { filename, csv } = await this.guests.exportCsv(user, eventId, body.eventGuestIds);
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csv);
+    const file = await this.guests.export(user, eventId, body);
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+    res.send(file.body);
   }
 
   @Post('remove')

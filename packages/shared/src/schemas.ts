@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EVENT_STATUSES, USER_ROLES } from './enums';
+import { EVENT_STATUSES, GUEST_EMAIL_STATUSES, GUEST_TICKET_STATES, USER_ROLES } from './enums';
 
 // Validation schemas used by BOTH sides: React Hook Form on the client and
 // the ZodValidationPipe on the API. Messages are user-facing → Serbian.
@@ -207,9 +207,24 @@ export const eventGuestIdsSchema = z.object({
 });
 export type EventGuestIdsInput = z.infer<typeof eventGuestIdsSchema>;
 
+export const GUEST_EXPORT_FORMATS = ['csv', 'xlsx'] as const;
+export type GuestExportFormat = (typeof GUEST_EXPORT_FORMATS)[number];
+
 export const exportGuestsSchema = z.object({
+  /** Explicit selection. When present it wins over `filters`. */
   eventGuestIds: z.array(uuid).max(5000).optional(),
+  format: z.enum(GUEST_EXPORT_FORMATS).default('csv'),
+  /** Same filters as the guest list, so the export matches what is on screen. */
+  filters: z
+    .object({
+      search: z.string().trim().max(100).optional(),
+      ticketTypeId: uuid.optional(),
+      emailStatus: z.enum(GUEST_EMAIL_STATUSES).optional(),
+      ticketState: z.enum(GUEST_TICKET_STATES).optional(),
+    })
+    .optional(),
 });
+export type ExportGuestsInput = z.infer<typeof exportGuestsSchema>;
 
 // ── Tickets ─────────────────────────────────────────────────────────────────
 
